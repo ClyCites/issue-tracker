@@ -2,13 +2,14 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
+import { AuthProvider } from "@/components/AuthProvider"
+import { Header } from "@/components/Header"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "GitHub Issues Dashboard",
-  description: "Professional GitHub Issues Dashboard built with Next.js",
-    generator: 'v0.dev'
+  description: "Professional GitHub Issues Dashboard with OAuth authentication",
 }
 
 export default function RootLayout({
@@ -19,7 +20,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="min-h-screen bg-background">{children}</div>
+        <AuthProvider>
+          <div className="min-h-screen bg-background">
+            <Header />
+            {children}
+          </div>
+        </AuthProvider>
       </body>
     </html>
   )
