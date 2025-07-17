@@ -1,3 +1,5 @@
+'use client'
+
 import { Suspense } from "react"
 import { getIssuesFromRepos } from "@/lib/github"
 import { IssueFilters } from "@/components/IssueFilters"
