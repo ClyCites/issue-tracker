@@ -1,8 +1,7 @@
 import NextAuth from "next-auth"
-import type { NextAuthOptions } from "next-auth"
 import GitHubProvider from "next-auth/providers/github"
 
-const authOptions: NextAuthOptions = {
+const handler = NextAuth({
   providers: [
     GitHubProvider({
       clientId: process.env.GITHUB_CLIENT_ID!,
@@ -19,14 +18,16 @@ const authOptions: NextAuthOptions = {
       // Persist the OAuth access_token to the token right after signin
       if (account) {
         token.accessToken = account.access_token
-        token.username = profile?.login
+        token.username = (profile as any)?.login
       }
       return token
     },
     async session({ session, token }) {
       // Send properties to the client
-      session.accessToken = token.accessToken as string
-      session.user.username = token.username as string
+      ;(session as any).accessToken = token.accessToken as string
+      if (session.user) {
+        ;(session.user as any).username = token.username as string
+      }
       return session
     },
     async signIn({ user, account, profile }) {
@@ -66,8 +67,6 @@ const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
   },
-}
-
-const handler = NextAuth(authOptions)
+})
 
 export { handler as GET, handler as POST }

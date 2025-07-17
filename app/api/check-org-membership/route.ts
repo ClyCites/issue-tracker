@@ -5,13 +5,13 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getAuthSession()
 
-    if (!session?.accessToken) {
+    if (!session || !(session as any).accessToken) {
       return NextResponse.json({ isMember: false, error: "No access token" })
     }
 
     const response = await fetch("https://api.github.com/user/memberships/orgs/ClyCites", {
       headers: {
-        Authorization: `Bearer ${session.accessToken}`,
+        Authorization: `Bearer ${(session as any).accessToken}`,
         Accept: "application/vnd.github.v3+json",
       },
     })

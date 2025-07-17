@@ -1,8 +1,7 @@
 import { getServerSession } from "next-auth/next"
-import type { NextAuthOptions } from "next-auth"
 import GitHubProvider from "next-auth/providers/github"
 
-export const authOptions: NextAuthOptions = {
+export const authOptions = {
   providers: [
     GitHubProvider({
       clientId: process.env.GITHUB_CLIENT_ID!,
@@ -15,19 +14,21 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, account, profile }) {
+    async jwt({ token, account, profile }: any) {
       if (account) {
         token.accessToken = account.access_token
         token.username = profile?.login
       }
       return token
     },
-    async session({ session, token }) {
-      session.accessToken = token.accessToken as string
-      session.user.username = token.username as string
+    async session({ session, token }: any) {
+      ;(session as any).accessToken = token.accessToken as string
+      if (session.user) {
+        ;(session.user as any).username = token.username as string
+      }
       return session
     },
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account, profile }: any) {
       if (account?.provider === "github") {
         try {
           const response = await fetch("https://api.github.com/user/memberships/orgs/ClyCites", {
@@ -57,7 +58,7 @@ export const authOptions: NextAuthOptions = {
     signIn: "/auth/signin",
   },
   session: {
-    strategy: "jwt",
+    strategy: "jwt" as const,
   },
 }
 

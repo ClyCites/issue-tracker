@@ -11,7 +11,7 @@ export function OrganizationBadge() {
 
   useEffect(() => {
     const checkMembership = async () => {
-      if (!session?.accessToken) return
+      if (!(session as any)?.accessToken) return
 
       try {
         const response = await fetch("/api/check-org-membership")

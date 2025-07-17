@@ -99,7 +99,13 @@ async function AssignedIssuesContent({ searchParams, username }: AssignedIssuesP
 export default async function AssignedIssuesPage({ searchParams }: AssignedIssuesPageProps) {
   const session = await getAuthSession()
 
-  if (!session) {
+  if (!session?.user) {
+    redirect("/auth/signin")
+  }
+
+  const username = (session.user as any)?.username
+
+  if (!username) {
     redirect("/auth/signin")
   }
 
@@ -109,14 +115,14 @@ export default async function AssignedIssuesPage({ searchParams }: AssignedIssue
         <div className="flex items-center gap-3 mb-2">
           <h1 className="text-4xl font-bold tracking-tight">My Assigned Issues</h1>
           <Badge variant="secondary" className="text-sm">
-            @{session.user.username}
+            @{username}
           </Badge>
         </div>
         <p className="text-muted-foreground text-lg">Issues assigned to you across all repositories</p>
       </div>
 
       <Suspense fallback={<AssignedIssuesLoading />}>
-        <AssignedIssuesContent searchParams={searchParams} username={session.user.username!} />
+        <AssignedIssuesContent searchParams={searchParams} username={username} />
       </Suspense>
     </div>
   )
