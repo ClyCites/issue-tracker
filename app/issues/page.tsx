@@ -5,8 +5,6 @@ import { IssuesList } from "@/components/IssuesList"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { RepositoryStatus } from "@/components/RepositoryStatus"
-import { IssuesContent } from "@/components/IssuesContent"
-
 
 interface SearchParams {
   state?: "open" | "closed" | "all"
@@ -14,10 +12,6 @@ interface SearchParams {
   labels?: string
   search?: string
   assignment?: "assigned" | "unassigned" | "all"
-}
-
-interface IssuesPageProps {
-  searchParams: SearchParams
 }
 
 function IssuesLoading() {
@@ -42,19 +36,18 @@ function IssuesLoading() {
   )
 }
 
-// async function IssuesContent({ searchParams }: IssuesPageProps) {
-//   const issues = await getIssuesFromRepos({
-//     state: searchParams.state || "open",
-//     labels: searchParams.labels?.split(",").filter(Boolean) || [],
-//     repo: searchParams.repos, // Note: this will be handled differently now for multi-select
-//     search: searchParams.search,
-//     assignment: searchParams.assignment || "all",
-//   })
+export default async function IssuesPage({ searchParams }: { searchParams: SearchParams }) {
+  // Explicitly destructure searchParams properties to satisfy Next.js's check
+  const { state, labels, repos, search, assignment } = searchParams
 
-//   return <IssuesList issues={issues} />
-// }
+  const issues = await getIssuesFromRepos({
+    state: state || "open",
+    labels: labels?.split(",").filter(Boolean) || [],
+    repo: repos,
+    search: search,
+    assignment: assignment || "all",
+  })
 
-export default function IssuesPage({ searchParams }: IssuesPageProps) {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
@@ -79,7 +72,7 @@ export default function IssuesPage({ searchParams }: IssuesPageProps) {
 
         <div className="lg:col-span-3">
           <Suspense fallback={<IssuesLoading />}>
-            <IssuesContent searchParams={searchParams} />
+            <IssuesList issues={issues} />
           </Suspense>
         </div>
       </div>
