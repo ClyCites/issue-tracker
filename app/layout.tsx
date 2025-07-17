@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/components/AuthProvider"
 import { Header } from "@/components/Header"
+import { BreadcrumbNav } from "@/components/BreadcrumbNav"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -23,7 +24,8 @@ export default function RootLayout({
         <AuthProvider>
           <div className="min-h-screen bg-background">
             <Header />
-            {children}
+            <BreadcrumbNav />
+            <main className="flex-1">{children}</main>
           </div>
         </AuthProvider>
       </body>
