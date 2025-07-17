@@ -72,7 +72,6 @@ export function IssueFilters() {
 
   return (
     <div className="space-y-6">
-      {/* Search Bar */}
       <div className="space-y-2">
         <Label className="text-sm font-medium">Search</Label>
         <SearchBar />
@@ -80,7 +79,6 @@ export function IssueFilters() {
 
       <Separator />
 
-      {/* Active Filters */}
       <ActiveFilters repositories={repositories} availableLabels={availableLabels} />
 
       <Separator />
