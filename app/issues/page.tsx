@@ -64,7 +64,6 @@ export default async function IssuesPage({
         </p>
       </div>
 
-      {/* <RepositoryStatus /> */}
 
       <div className="grid gap-6 lg:grid-cols-4">
         <div className="lg:col-span-1">
