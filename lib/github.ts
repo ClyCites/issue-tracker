@@ -1,3 +1,4 @@
+'use server'
 interface GitHubIssue {
   id: number
   number: number
@@ -36,6 +37,14 @@ interface IssueFilters {
   repo?: string
   search?: string
   assignment?: "assigned" | "unassigned" | "all"
+}
+
+interface SearchParams {
+  state?: string
+  labels?: string
+  repos?: string
+  search?: string
+  assignment?: string
 }
 
 const GITHUB_TOKEN = process.env.NEXT_PUBLIC_GITHUB_TOKEN
@@ -124,15 +133,14 @@ export async function getIssuesFromRepo(repoFullName: string, filters: IssueFilt
   }
 }
 
-export async function getIssuesFromRepos(filters: IssueFilters = {}): Promise<GitHubIssue[]> {
-  // Handle multiple repositories from the repos filter
-  let repos: string[]
-  if (filters.repo) {
-    // Handle comma-separated repos from the new multi-select
-    repos = filters.repo.split(",").filter(Boolean)
-  } else {
-    repos = GITHUB_REPOS
-  }
+// Refactored to accept the raw searchParams object
+export async function getIssuesFromRepos(rawSearchParams: SearchParams): Promise<GitHubIssue[]> {
+  // Parse searchParams here, centralizing the logic
+  const state = rawSearchParams.state || "open"
+  const labels = rawSearchParams.labels?.split(",").filter(Boolean) || []
+  const repos = rawSearchParams.repos?.split(",").filter(Boolean) || GITHUB_REPOS
+  const search = rawSearchParams.search
+  const assignment = rawSearchParams.assignment || "all"
 
   // Validate repositories format
   const validRepos = repos.filter((repo) => {
@@ -149,7 +157,12 @@ export async function getIssuesFromRepos(filters: IssueFilters = {}): Promise<Gi
     return []
   }
 
-  const issuesPromises = validRepos.map((repo) => getIssuesFromRepo(repo, filters))
+  const issuesPromises = validRepos.map((repo) =>
+    getIssuesFromRepo(repo, {
+      state,
+      labels,
+    }),
+  )
   const issuesArrays = await Promise.allSettled(issuesPromises)
 
   // Extract successful results and log failures
@@ -165,9 +178,9 @@ export async function getIssuesFromRepos(filters: IssueFilters = {}): Promise<Gi
   // Sort by updated_at
   let filteredIssues = allIssues.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
 
-  // Client-side filtering for search
-  if (filters.search) {
-    const searchTerm = filters.search.toLowerCase()
+  // Client-side filtering for search (if not handled by GitHub API directly)
+  if (search) {
+    const searchTerm = search.toLowerCase()
     filteredIssues = filteredIssues.filter((issue) => {
       const titleMatch = issue.title.toLowerCase().includes(searchTerm)
       const labelMatch = issue.labels.some((label) => label.name.toLowerCase().includes(searchTerm))
@@ -179,10 +192,10 @@ export async function getIssuesFromRepos(filters: IssueFilters = {}): Promise<Gi
   }
 
   // Client-side filtering for assignment
-  if (filters.assignment && filters.assignment !== "all") {
-    if (filters.assignment === "assigned") {
+  if (assignment && assignment !== "all") {
+    if (assignment === "assigned") {
       filteredIssues = filteredIssues.filter((issue) => issue.assignee !== null)
-    } else if (filters.assignment === "unassigned") {
+    } else if (assignment === "unassigned") {
       filteredIssues = filteredIssues.filter((issue) => issue.assignee === null)
     }
   }

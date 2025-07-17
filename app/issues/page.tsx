@@ -1,18 +1,9 @@
-import { Suspense } from "react"
 import { getIssuesFromRepos } from "@/lib/github"
 import { IssueFilters } from "@/components/IssueFilters"
 import { IssuesList } from "@/components/IssuesList"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { RepositoryStatus } from "@/components/RepositoryStatus"
-
-interface SearchParams {
-  state?: "open" | "closed" | "all"
-  repos?: string
-  labels?: string
-  search?: string
-  assignment?: "assigned" | "unassigned" | "all"
-}
 
 function IssuesLoading() {
   return (
@@ -36,26 +27,46 @@ function IssuesLoading() {
   )
 }
 
-export default async function IssuesPage({ searchParams }: { searchParams: SearchParams }) {
-  // Explicitly destructure searchParams properties to satisfy Next.js's check
-  const { state, labels, repos, search, assignment } = searchParams
+export default async function IssuesPage({
+  searchParams,
+}: {
+  searchParams: any
+}) {
+  // Await searchParams if it’s a Promise (async dynamic API)
+  const resolvedSearchParams =
+    typeof searchParams?.then === "function" ? await searchParams : searchParams
 
-  const issues = await getIssuesFromRepos({
-    state: state || "open",
-    labels: labels?.split(",").filter(Boolean) || [],
-    repo: repos,
-    search: search,
-    assignment: assignment || "all",
-  })
+  // Convert to URLSearchParams to safely iterate keys and values
+  const urlSearchParams = new URLSearchParams()
+
+  for (const [key, value] of Object.entries(resolvedSearchParams)) {
+    if (Array.isArray(value)) {
+      value.forEach((v) => urlSearchParams.append(key, v))
+    } else if (value !== undefined) {
+      urlSearchParams.append(key, value)
+    }
+  }
+
+  // Normalize into a plain object with string values
+  const normalizedParams: Record<string, string> = {}
+
+  for (const [key, value] of urlSearchParams.entries()) {
+    normalizedParams[key] = value
+  }
+
+  // Fetch issues with normalized params
+  const issues = await getIssuesFromRepos(normalizedParams)
 
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
         <h1 className="text-4xl font-bold tracking-tight mb-2">GitHub Issues Dashboard</h1>
-        <p className="text-muted-foreground text-lg">Track and manage issues across your repositories</p>
+        <p className="text-muted-foreground text-lg">
+          Track and manage issues across your repositories
+        </p>
       </div>
 
-      {/* <RepositoryStatus /> */}
+      <RepositoryStatus />
 
       <div className="grid gap-6 lg:grid-cols-4">
         <div className="lg:col-span-1">
@@ -71,9 +82,7 @@ export default async function IssuesPage({ searchParams }: { searchParams: Searc
         </div>
 
         <div className="lg:col-span-3">
-          <Suspense fallback={<IssuesLoading />}>
-            <IssuesList issues={issues} />
-          </Suspense>
+          <IssuesList issues={issues} />
         </div>
       </div>
     </div>
