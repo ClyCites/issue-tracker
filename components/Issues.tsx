@@ -5,8 +5,6 @@ import { IssuesList } from "@/components/IssuesList"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { RepositoryStatus } from "@/components/RepositoryStatus"
-import { IssuesContent } from "@/components/IssuesContent"
-
 
 interface SearchParams {
   state?: "open" | "closed" | "all"
@@ -42,17 +40,17 @@ function IssuesLoading() {
   )
 }
 
-// async function IssuesContent({ searchParams }: IssuesPageProps) {
-//   const issues = await getIssuesFromRepos({
-//     state: searchParams.state || "open",
-//     labels: searchParams.labels?.split(",").filter(Boolean) || [],
-//     repo: searchParams.repos, // Note: this will be handled differently now for multi-select
-//     search: searchParams.search,
-//     assignment: searchParams.assignment || "all",
-//   })
+async function IssuesContent({ searchParams }: IssuesPageProps) {
+  const issues = await getIssuesFromRepos({
+    state: searchParams.state || "open",
+    labels: searchParams.labels?.split(",").filter(Boolean) || [],
+    repo: searchParams.repos, // Note: this will be handled differently now for multi-select
+    search: searchParams.search,
+    assignment: searchParams.assignment || "all",
+  })
 
-//   return <IssuesList issues={issues} />
-// }
+  return <IssuesList issues={issues} />
+}
 
 export default function IssuesPage({ searchParams }: IssuesPageProps) {
   return (
