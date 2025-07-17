@@ -1,4 +1,5 @@
-'use server'
+"use server"
+
 interface GitHubIssue {
   id: number
   number: number
@@ -39,10 +40,11 @@ interface IssueFilters {
   assignment?: "assigned" | "unassigned" | "all"
 }
 
+// Updated SearchParams interface to correctly handle string | string[]
 interface SearchParams {
-  state?: string
-  labels?: string
-  repos?: string
+  state?: string | string[]
+  labels?: string | string[]
+  repos?: string | string[]
   search?: string
   assignment?: string
 }
@@ -133,14 +135,23 @@ export async function getIssuesFromRepo(repoFullName: string, filters: IssueFilt
   }
 }
 
-// Refactored to accept the raw searchParams object
+// Refactored to accept the raw searchParams object and handle string[]
 export async function getIssuesFromRepos(rawSearchParams: SearchParams): Promise<GitHubIssue[]> {
   // Parse searchParams here, centralizing the logic
-  const state = rawSearchParams.state || "open"
-  const labels = rawSearchParams.labels?.split(",").filter(Boolean) || []
-  const repos = rawSearchParams.repos?.split(",").filter(Boolean) || GITHUB_REPOS
-  const search = rawSearchParams.search
-  const assignment = rawSearchParams.assignment || "all"
+  const state = Array.isArray(rawSearchParams.state) ? rawSearchParams.state[0] : rawSearchParams.state || "open"
+
+  const labels = Array.isArray(rawSearchParams.labels)
+    ? rawSearchParams.labels.filter(Boolean)
+    : rawSearchParams.labels?.split(",").filter(Boolean) || []
+
+  const repos = Array.isArray(rawSearchParams.repos)
+    ? rawSearchParams.repos.filter(Boolean)
+    : rawSearchParams.repos?.split(",").filter(Boolean) || GITHUB_REPOS
+
+  const search = Array.isArray(rawSearchParams.search) ? rawSearchParams.search[0] : rawSearchParams.search
+  const assignment = Array.isArray(rawSearchParams.assignment)
+    ? rawSearchParams.assignment[0]
+    : rawSearchParams.assignment || "all"
 
   // Validate repositories format
   const validRepos = repos.filter((repo) => {

@@ -8,10 +8,13 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { User, GitBranch, Clock } from "lucide-react"
 
+// Updated SearchParams interface to correctly handle string | string[]
 interface SearchParams {
-  state?: "open" | "closed" | "all"
-  repo?: string
-  labels?: string
+  state?: "open" | "closed" | "all" | string | string[]
+  repo?: string | string[]
+  labels?: string | string[]
+  search?: string | string[]
+  assignment?: "assigned" | "unassigned" | "all" | string | string[]
 }
 
 interface AssignedIssuesPageProps {
@@ -41,15 +44,12 @@ function AssignedIssuesLoading() {
 }
 
 async function AssignedIssuesContent({ searchParams, username }: AssignedIssuesPageProps & { username: string }) {
-  // Fetch all issues and filter by assignee
-  const allIssues = await getIssuesFromRepos({
-    state: searchParams.state || "open",
-    labels: searchParams.labels?.split(",").filter(Boolean) || [],
-    repo: searchParams.repo,
-  })
+  const allIssues = await getIssuesFromRepos(searchParams)
 
-  // Filter issues assigned to the current user
   const assignedIssues = allIssues.filter((issue) => issue.assignee?.login === username)
+
+  const openCount = assignedIssues.filter((issue) => issue.state === "open").length
+  const repoCount = new Set(assignedIssues.map((i) => i.repository?.full_name)).size
 
   return (
     <div className="space-y-6">
@@ -72,7 +72,7 @@ async function AssignedIssuesContent({ searchParams, username }: AssignedIssuesP
             <GitBranch className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{assignedIssues.filter((issue) => issue.state === "open").length}</div>
+            <div className="text-2xl font-bold">{openCount}</div>
             <p className="text-xs text-muted-foreground">Currently open</p>
           </CardContent>
         </Card>
@@ -83,9 +83,7 @@ async function AssignedIssuesContent({ searchParams, username }: AssignedIssuesP
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {new Set(assignedIssues.map((issue) => issue.repository?.full_name)).size}
-            </div>
+            <div className="text-2xl font-bold">{repoCount}</div>
             <p className="text-xs text-muted-foreground">Across repositories</p>
           </CardContent>
         </Card>
