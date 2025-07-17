@@ -8,8 +8,10 @@ import { RepositoryStatus } from "@/components/RepositoryStatus"
 
 interface SearchParams {
   state?: "open" | "closed" | "all"
-  repo?: string
+  repos?: string
   labels?: string
+  search?: string
+  assignment?: "assigned" | "unassigned" | "all"
 }
 
 interface IssuesPageProps {
@@ -42,7 +44,9 @@ async function IssuesContent({ searchParams }: IssuesPageProps) {
   const issues = await getIssuesFromRepos({
     state: searchParams.state || "open",
     labels: searchParams.labels?.split(",").filter(Boolean) || [],
-    repo: searchParams.repo,
+    repo: searchParams.repos, // Note: this will be handled differently now for multi-select
+    search: searchParams.search,
+    assignment: searchParams.assignment || "all",
   })
 
   return <IssuesList issues={issues} />

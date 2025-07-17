@@ -34,6 +34,8 @@ interface IssueFilters {
   state?: "open" | "closed" | "all"
   labels?: string[]
   repo?: string
+  search?: string
+  assignment?: "assigned" | "unassigned" | "all"
 }
 
 const GITHUB_TOKEN = process.env.NEXT_PUBLIC_GITHUB_TOKEN
@@ -123,7 +125,14 @@ export async function getIssuesFromRepo(repoFullName: string, filters: IssueFilt
 }
 
 export async function getIssuesFromRepos(filters: IssueFilters = {}): Promise<GitHubIssue[]> {
-  const repos = filters.repo ? [filters.repo] : GITHUB_REPOS
+  // Handle multiple repositories from the repos filter
+  let repos: string[]
+  if (filters.repo) {
+    // Handle comma-separated repos from the new multi-select
+    repos = filters.repo.split(",").filter(Boolean)
+  } else {
+    repos = GITHUB_REPOS
+  }
 
   // Validate repositories format
   const validRepos = repos.filter((repo) => {
@@ -136,7 +145,7 @@ export async function getIssuesFromRepos(filters: IssueFilters = {}): Promise<Gi
   })
 
   if (validRepos.length === 0) {
-    console.error("No valid repositories found in GITHUB_REPOS")
+    console.error("No valid repositories found")
     return []
   }
 
@@ -154,7 +163,31 @@ export async function getIssuesFromRepos(filters: IssueFilters = {}): Promise<Gi
   })
 
   // Sort by updated_at
-  return allIssues.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+  let filteredIssues = allIssues.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+
+  // Client-side filtering for search
+  if (filters.search) {
+    const searchTerm = filters.search.toLowerCase()
+    filteredIssues = filteredIssues.filter((issue) => {
+      const titleMatch = issue.title.toLowerCase().includes(searchTerm)
+      const labelMatch = issue.labels.some((label) => label.name.toLowerCase().includes(searchTerm))
+      const assigneeMatch = issue.assignee?.login.toLowerCase().includes(searchTerm)
+      const userMatch = issue.user.login.toLowerCase().includes(searchTerm)
+
+      return titleMatch || labelMatch || assigneeMatch || userMatch
+    })
+  }
+
+  // Client-side filtering for assignment
+  if (filters.assignment && filters.assignment !== "all") {
+    if (filters.assignment === "assigned") {
+      filteredIssues = filteredIssues.filter((issue) => issue.assignee !== null)
+    } else if (filters.assignment === "unassigned") {
+      filteredIssues = filteredIssues.filter((issue) => issue.assignee === null)
+    }
+  }
+
+  return filteredIssues
 }
 
 export async function getLabelsFromRepos(): Promise<Array<{ name: string; color: string }>> {

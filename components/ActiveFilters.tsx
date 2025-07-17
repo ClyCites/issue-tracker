@@ -1,57 +1,60 @@
 "use client"
 
-import { useState } from "react"
-import { Check, ChevronDown } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { X, Filter } from "lucide-react"
 
-interface Option {
-  value: string
-  label: string
-  color?: string
+interface ActiveFiltersProps {
+  repositories: string[]
+  availableLabels: Array<{ name: string; color: string }>
 }
 
-interface MultiSelectDropdownProps {
-  options: Option[]
-  selected: string[]
-  onSelectionChange: (selected: string[]) => void
-  placeholder: string
-  searchPlaceholder?: string
-  maxDisplay?: number
-}
+export function ActiveFilters({ repositories, availableLabels }: ActiveFiltersProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
 
-export function MultiSelectDropdown({
-  options,
-  selected,
-  onSelectionChange,
-  placeholder,
-  searchPlaceholder = "Search...",
-  maxDisplay = 3,
-}: MultiSelectDropdownProps) {
-  const [open, setOpen] = useState(false)
+  const currentState = searchParams.get("state") || "open"
+  const currentRepos = searchParams.get("repos")?.split(",").filter(Boolean) || []
+  const currentLabels = searchParams.get("labels")?.split(",").filter(Boolean) || []
+  const currentSearch = searchParams.get("search") || ""
+  const currentAssignment = searchParams.get("assignment") || "all"
 
-  const toggleOption = (value: string) => {
-    const newSelected = selected.includes(value) ? selected.filter((item) => item !== value) : [...selected, value]
-    onSelectionChange(newSelected)
+  const removeFilter = (key: string, value?: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+
+    if (key === "repos" && value) {
+      const repos = currentRepos.filter((repo) => repo !== value)
+      if (repos.length > 0) {
+        params.set("repos", repos.join(","))
+      } else {
+        params.delete("repos")
+      }
+    } else if (key === "labels" && value) {
+      const labels = currentLabels.filter((label) => label !== value)
+      if (labels.length > 0) {
+        params.set("labels", labels.join(","))
+      } else {
+        params.delete("labels")
+      }
+    } else {
+      if (key === "state") {
+        params.set("state", "open") // Reset to default
+      } else {
+        params.delete(key)
+      }
+    }
+
+    router.push(`/issues?${params.toString()}`)
   }
 
-  const getDisplayText = () => {
-    if (selected.length === 0) return placeholder
-    if (selected.length <= maxDisplay) {
-      return selected.join(", ")
-    }
-    return `${selected.slice(0, maxDisplay).join(", ")} +${selected.length - maxDisplay} more`
+  const clearAllFilters = () => {
+    router.push("/issues")
   }
 
-  const getLabelStyle = (option: Option) => {
-    if (!option.color) return {}
-    return {
-      backgroundColor: `#${option.color}`,
-      color: getContrastColor(option.color),
-    }
+  const getLabelColor = (labelName: string) => {
+    const label = availableLabels.find((l) => l.name === labelName)
+    return label?.color
   }
 
   const getContrastColor = (hexColor: string) => {
@@ -62,45 +65,119 @@ export function MultiSelectDropdown({
     return brightness > 128 ? "#000000" : "#ffffff"
   }
 
+  const hasActiveFilters =
+    currentState !== "open" ||
+    currentRepos.length > 0 ||
+    currentLabels.length > 0 ||
+    currentSearch ||
+    currentAssignment !== "all"
+
+  if (!hasActiveFilters) {
+    return null
+  }
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="justify-between text-left font-normal bg-transparent"
-        >
-          <span className="truncate">{getDisplayText()}</span>
-          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-medium">Active Filters</h3>
+        <Button variant="ghost" size="sm" onClick={clearAllFilters} className="h-6 px-2 text-xs">
+          <Filter className="w-3 h-3 mr-1" />
+          Clear All
         </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[300px] p-0">
-        <Command>
-          <CommandInput placeholder={searchPlaceholder} />
-          <CommandList>
-            <CommandEmpty>No options found.</CommandEmpty>
-            <CommandGroup>
-              {options.map((option) => (
-                <CommandItem key={option.value} onSelect={() => toggleOption(option.value)}>
-                  <Check
-                    className={cn("mr-2 h-4 w-4", selected.includes(option.value) ? "opacity-100" : "opacity-0")}
-                  />
-                  <div className="flex items-center gap-2 flex-1">
-                    {option.color ? (
-                      <Badge variant="outline" className="text-xs border-0" style={getLabelStyle(option)}>
-                        {option.label}
-                      </Badge>
-                    ) : (
-                      <span>{option.label}</span>
-                    )}
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+      </div>
+
+      <div className="flex flex-wrap gap-1">
+        {/* State Filter */}
+        {currentState !== "open" && (
+          <Badge variant="secondary" className="text-xs">
+            State: {currentState}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => removeFilter("state")}
+              className="ml-1 h-3 w-3 p-0 hover:bg-transparent"
+            >
+              <X className="w-2 h-2" />
+            </Button>
+          </Badge>
+        )}
+
+        {/* Repository Filters */}
+        {currentRepos.map((repo) => (
+          <Badge key={repo} variant="secondary" className="text-xs">
+            Repo: {repo.split("/")[1]}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => removeFilter("repos", repo)}
+              className="ml-1 h-3 w-3 p-0 hover:bg-transparent"
+            >
+              <X className="w-2 h-2" />
+            </Button>
+          </Badge>
+        ))}
+
+        {/* Label Filters */}
+        {currentLabels.map((labelName) => {
+          const color = getLabelColor(labelName)
+          return (
+            <Badge
+              key={labelName}
+              variant="outline"
+              className="text-xs border-0"
+              style={
+                color
+                  ? {
+                      backgroundColor: `#${color}`,
+                      color: getContrastColor(color),
+                    }
+                  : undefined
+              }
+            >
+              {labelName}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => removeFilter("labels", labelName)}
+                className="ml-1 h-3 w-3 p-0 hover:bg-transparent"
+                style={{ color: color ? getContrastColor(color) : undefined }}
+              >
+                <X className="w-2 h-2" />
+              </Button>
+            </Badge>
+          )
+        })}
+
+        {/* Search Filter */}
+        {currentSearch && (
+          <Badge variant="secondary" className="text-xs">
+            Search: "{currentSearch}"
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => removeFilter("search")}
+              className="ml-1 h-3 w-3 p-0 hover:bg-transparent"
+            >
+              <X className="w-2 h-2" />
+            </Button>
+          </Badge>
+        )}
+
+        {/* Assignment Filter */}
+        {currentAssignment !== "all" && (
+          <Badge variant="secondary" className="text-xs">
+            Assignment: {currentAssignment}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => removeFilter("assignment")}
+              className="ml-1 h-3 w-3 p-0 hover:bg-transparent"
+            >
+              <X className="w-2 h-2" />
+            </Button>
+          </Badge>
+        )}
+      </div>
+    </div>
   )
 }
