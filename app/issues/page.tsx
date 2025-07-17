@@ -47,14 +47,12 @@ export default async function IssuesPage({
     }
   }
 
-  // Normalize into a plain object with string values
   const normalizedParams: Record<string, string> = {}
 
   for (const [key, value] of urlSearchParams.entries()) {
     normalizedParams[key] = value
   }
 
-  // Fetch issues with normalized params
   const issues = await getIssuesFromRepos(normalizedParams)
 
   return (
